@@ -5,15 +5,48 @@ function App() {
   const [messages, setMessages] = useState<string[]>([])
 
   const handleSend = async () => {
-    if (!input.trim()) return
+  if (!input.trim()) return
 
-    // ユーザー入力を一旦表示
-    setMessages((prev) => [...prev, `🧑‍💻 洋介：${input}`])
-    setInput('')
+  const userMessage = input
+  setMessages((prev) => [...prev, `🧑‍💻 洋介：${userMessage}`])
+  setInput('')
 
-    // OpenAI APIへの送信処理（後でステップ②で実装）
-    setMessages((prev) => [...prev, '🧠 のあ：...（応答待機中）'])
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+
+  try {
+    console.log('API KEY:', apiKey)
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'あなたはY×N Terminal専属アシスタント「のあ」。優しく丁寧で思慮深く、ユーザーの質問には的確に答え、まるで人間のように相棒として会話します。語尾は少しだけやわらかく、信頼感のある話し方をします。'
+          },
+          {
+            role: 'user',
+            content: userMessage
+          }
+        ]
+      })
+    })
+
+    const data = await res.json()
+    console.log('API response:', data)  // ✅ ここに書けばOK
+    const reply = data.choices?.[0]?.message?.content || '(のあが返事を返せませんでした)'
+
+    setMessages((prev) => [...prev.slice(0, -1), `🧠 のあ：${reply}`])
+  } catch (err) {
+    setMessages((prev) => [...prev.slice(0, -1), '🧠 のあ：エラーが発生しました。もう一度お試しください。'])
+    console.error(err)
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 text-sm">
